@@ -5,6 +5,12 @@ import { registeredVisualizations } from '@/visualizations';
 
 export let Widget = null; // eslint-disable-line import/no-mutable-exports
 
+export const WidgetTypeEnum = {
+  TEXTBOX: 'textbox',
+  VISUALIZATION: 'visualization',
+  RESTRICTED: 'restricted',
+};
+
 function calculatePositionOptions(widget) {
   widget.width = 1; // Backward compatibility, user on back-end
 
@@ -93,6 +99,15 @@ function WidgetFactory($http, $location, Query) {
       }
     }
 
+    get type() {
+      if (this.visualization) {
+        return WidgetTypeEnum.VISUALIZATION;
+      } else if (this.restricted) {
+        return WidgetTypeEnum.RESTRICTED;
+      }
+      return WidgetTypeEnum.TEXTBOX;
+    }
+
     getQuery() {
       if (!this.query && this.visualization) {
         this.query = new Query(this.visualization.query);
@@ -114,7 +129,7 @@ function WidgetFactory($http, $location, Query) {
 
     load(force, maxAge) {
       if (!this.visualization) {
-        return undefined;
+        return Promise.resolve();
       }
 
       // Both `this.data` and `this.queryResult` are query result objects;
@@ -212,7 +227,7 @@ function WidgetFactory($http, $location, Query) {
 
       const existingParams = {};
       // textboxes does not have query
-      const params = this.getQuery() ? this.getQuery().getParametersDefs() : [];
+      const params = this.getQuery() ? this.getQuery().getParametersDefs(false) : [];
       each(params, (param) => {
         existingParams[param.name] = true;
         if (!isObject(this.options.parameterMappings[param.name])) {
@@ -238,6 +253,13 @@ function WidgetFactory($http, $location, Query) {
       });
 
       return this.options.parameterMappings;
+    }
+
+    getLocalParameters() {
+      return filter(
+        this.getParametersDefs(),
+        param => !this.isStaticParam(param),
+      );
     }
   }
 

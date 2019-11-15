@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 import os
 from .helpers import parse_boolean
 
@@ -20,6 +20,7 @@ DATE_FORMAT = os.environ.get("REDASH_DATE_FORMAT", "DD/MM/YY")
 TIME_FORMAT = os.environ.get("REDASH_TIME_FORMAT", "HH:mm")
 INTEGER_FORMAT = os.environ.get("REDASH_INTEGER_FORMAT", "0,0")
 FLOAT_FORMAT = os.environ.get("REDASH_FLOAT_FORMAT", "0,0.00")
+MULTI_BYTE_SEARCH_ENABLED = parse_boolean(os.environ.get("MULTI_BYTE_SEARCH_ENABLED", "false"))
 
 JWT_LOGIN_ENABLED = parse_boolean(os.environ.get("REDASH_JWT_LOGIN_ENABLED", "false"))
 JWT_AUTH_ISSUER = os.environ.get("REDASH_JWT_AUTH_ISSUER", "")
@@ -30,8 +31,11 @@ JWT_AUTH_COOKIE_NAME = os.environ.get("REDASH_JWT_AUTH_COOKIE_NAME", "")
 JWT_AUTH_HEADER_NAME = os.environ.get("REDASH_JWT_AUTH_HEADER_NAME", "")
 
 FEATURE_SHOW_PERMISSIONS_CONTROL = parse_boolean(os.environ.get("REDASH_FEATURE_SHOW_PERMISSIONS_CONTROL", "false"))
+SEND_EMAIL_ON_FAILED_SCHEDULED_QUERIES = parse_boolean(
+    os.environ.get('REDASH_SEND_EMAIL_ON_FAILED_SCHEDULED_QUERIES', 'false'))
 
 settings = {
+    "beacon_consent": None,
     "auth_password_login_enabled": PASSWORD_LOGIN_ENABLED,
     "auth_saml_enabled": SAML_LOGIN_ENABLED,
     "auth_saml_entity_id": SAML_ENTITY_ID,
@@ -41,6 +45,7 @@ settings = {
     "time_format": TIME_FORMAT,
     "integer_format": INTEGER_FORMAT,
     "float_format": FLOAT_FORMAT,
+    "multi_byte_search_enabled": MULTI_BYTE_SEARCH_ENABLED,
     "auth_jwt_login_enabled": JWT_LOGIN_ENABLED,
     "auth_jwt_auth_issuer": JWT_AUTH_ISSUER,
     "auth_jwt_auth_public_certs_url": JWT_AUTH_PUBLIC_CERTS_URL,
@@ -49,4 +54,5 @@ settings = {
     "auth_jwt_auth_cookie_name": JWT_AUTH_COOKIE_NAME,
     "auth_jwt_auth_header_name": JWT_AUTH_HEADER_NAME,
     "feature_show_permissions_control": FEATURE_SHOW_PERMISSIONS_CONTROL,
+    "send_email_on_failed_scheduled_queries": SEND_EMAIL_ON_FAILED_SCHEDULED_QUERIES
 }

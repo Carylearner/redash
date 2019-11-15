@@ -6,7 +6,7 @@ describe('Embedded Queries', () => {
   });
 
   it('can be shared without parameters', () => {
-    createQuery({ query: 'select name from users' })
+    createQuery({ query: 'select name from users order by name' })
       .then((query) => {
         cy.visit(`/queries/${query.id}/source`);
         cy.getByTestId('ExecuteButton').click();
@@ -33,7 +33,8 @@ describe('Embedded Queries', () => {
       .get('.ace_text-input')
       .type("SELECT name, slug FROM organizations WHERE id='{{}{{}id}}'{esc}", { force: true });
 
-    cy.getByTestId('TextParamInput').type('1{enter}');
+    cy.getByTestId('TextParamInput').type('1');
+    cy.getByTestId('ParameterApplyButton').click();
     cy.clickThrough(`
       ParameterSettings-id
       ParameterTypeSelect
@@ -65,7 +66,8 @@ describe('Embedded Queries', () => {
       .get('.ace_text-input')
       .type("SELECT name, slug FROM organizations WHERE name='{{}{{}name}}'{esc}", { force: true });
 
-    cy.getByTestId('TextParamInput').type('Redash{enter}');
+    cy.getByTestId('TextParamInput').type('Redash');
+    cy.getByTestId('ParameterApplyButton').click();
     cy.clickThrough(`
       ParameterSettings-name
       ParameterTypeSelect

@@ -5,7 +5,7 @@ import { includes, reduce, some } from 'lodash';
 const WIDGET_SELECTOR = '[data-widgetid="{0}"]';
 const WIDGET_CONTENT_SELECTOR = [
   '.widget-header', // header
-  'visualization-renderer', // visualization
+  '.visualization-renderer', // visualization
   '.scrollbox .alert', // error state
   '.spinner-container', // loading state
   '.tile__bottom-control', // footer
@@ -65,6 +65,11 @@ export default class AutoHeightController {
   };
 
   remove = (id) => {
+    // ignore if not an active autoHeight widget
+    if (!this.exists(id)) {
+      return;
+    }
+
     // not actually deleting from this.widgets to prevent case of unwanted re-adding
     this.widgets[id.toString()] = false;
 
@@ -78,14 +83,17 @@ export default class AutoHeightController {
   isEmpty = () => !some(this.widgets);
 
   checkHeightChanges = () => {
-    Object.keys(this.widgets).forEach((id) => {
-      const [getHeight, prevHeight] = this.widgets[id];
-      const height = getHeight();
-      if (height && height !== prevHeight) {
-        this.widgets[id][1] = height; // save
-        this.onHeightChange(id, height); // dispatch
-      }
-    });
+    Object
+      .keys(this.widgets)
+      .filter(this.exists) // reject already removed items
+      .forEach((id) => {
+        const [getHeight, prevHeight] = this.widgets[id];
+        const height = getHeight();
+        if (height && height !== prevHeight) {
+          this.widgets[id][1] = height; // save
+          this.onHeightChange(id, height); // dispatch
+        }
+      });
   };
 
   start = () => {

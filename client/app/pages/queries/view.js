@@ -1,4 +1,4 @@
-import { pick, some, find, minBy, map, intersection, isArray } from 'lodash';
+import { pick, some, find, minBy, map, intersection, isEmpty, isArray } from 'lodash';
 import { SCHEMA_NOT_SUPPORTED, SCHEMA_LOAD_ERROR } from '@/services/data-source';
 import getTags from '@/services/getTags';
 import { policy } from '@/services/policy';
@@ -8,6 +8,7 @@ import ScheduleDialog from '@/components/queries/ScheduleDialog';
 import { newVisualization } from '@/visualizations';
 import EditVisualizationDialog from '@/visualizations/EditVisualizationDialog';
 import EmbedQueryDialog from '@/components/queries/EmbedQueryDialog';
+import PermissionsEditorDialog from '@/components/permissions-editor/PermissionsEditorDialog';
 import notification from '@/services/notification';
 import template from './query.html';
 
@@ -42,7 +43,7 @@ function QueryViewCtrl(
     }
 
     $scope.showLog = false;
-    if ($scope.isDirty) {
+    if ($scope.isDirty || !isEmpty(selectedQueryText)) {
       $scope.queryResult = $scope.query.getQueryResultByText(maxAge, selectedQueryText);
     } else {
       $scope.queryResult = $scope.query.getQueryResult(maxAge);
@@ -166,7 +167,7 @@ function QueryViewCtrl(
   $scope.canEdit = currentUser.canEdit($scope.query) || $scope.query.can_edit;
   $scope.canViewSource = currentUser.hasPermission('view_source');
 
-  $scope.canExecuteQuery = () => $scope.query.is_safe || (currentUser.hasPermission('execute_query') && !$scope.dataSource.view_only);
+  $scope.canExecuteQuery = () => !$scope.query.$parameters.hasPendingValues() && ($scope.query.is_safe || (currentUser.hasPermission('execute_query') && !$scope.dataSource.view_only));
 
   $scope.canForkQuery = () => currentUser.hasPermission('edit_query') && !$scope.dataSource.view_only;
 
@@ -215,6 +216,10 @@ function QueryViewCtrl(
 
   $scope.loadTags = () => getTags('api/queries/tags').then(tags => map(tags, t => t.name));
 
+  $scope.applyParametersChanges = () => {
+    $scope.$apply();
+  };
+
   $scope.saveQuery = (customOptions, data) => {
     let request = data;
 
@@ -251,6 +256,14 @@ function QueryViewCtrl(
 
     if (options.force) {
       delete request.version;
+    }
+
+    // omit pendingValue before saving
+    if (request.options && request.options.parameters) {
+      request.options = {
+        ...request.options,
+        parameters: map(request.options.parameters, p => p.toSaveableObject()),
+      };
     }
 
     function overwrite() {
@@ -303,11 +316,16 @@ function QueryViewCtrl(
   $scope.saveName = (name) => {
     $scope.query.name = name;
     Events.record('edit_name', 'query', $scope.query.id);
+
+    let customOptions;
     if ($scope.query.is_draft && clientConfig.autoPublishNamedQueries && $scope.query.name !== 'New Query') {
       $scope.query.is_draft = false;
+      customOptions = {
+        successMessage: 'Query saved and published',
+      };
     }
 
-    $scope.saveQuery(undefined, { name: $scope.query.name, is_draft: $scope.query.is_draft });
+    $scope.saveQuery(customOptions, { name: $scope.query.name, is_draft: $scope.query.is_draft });
   };
 
   $scope.cancelExecution = () => {
@@ -511,12 +529,11 @@ function QueryViewCtrl(
   );
 
   $scope.showManagePermissionsModal = () => {
-    $uibModal.open({
-      component: 'permissionsEditor',
-      resolve: {
-        aclUrl: { url: `api/queries/${$routeParams.queryId}/acl` },
-        owner: $scope.query.user,
-      },
+    const aclUrl = `api/queries/${$routeParams.queryId}/acl`;
+    PermissionsEditorDialog.showModal({
+      aclUrl,
+      context: 'query',
+      author: $scope.query.user,
     });
   };
 }

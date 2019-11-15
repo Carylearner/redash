@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 import PromiseRejectionError from '@/lib/promise-rejection-error';
 import getTags from '@/services/getTags';
 import { policy } from '@/services/policy';
-import { Widget } from '@/services/widget';
 import {
   editableMappingsToParameterMappings,
   synchronizeWidgetTitles,
@@ -13,6 +12,7 @@ import template from './dashboard.html';
 import ShareDashboardDialog from './ShareDashboardDialog';
 import AddWidgetDialog from '@/components/dashboards/AddWidgetDialog';
 import TextboxDialog from '@/components/dashboards/TextboxDialog';
+import PermissionsEditorDialog from '@/components/permissions-editor/PermissionsEditorDialog';
 import notification from '@/services/notification';
 
 import './dashboard.less';
@@ -134,17 +134,32 @@ function DashboardCtrl(
     this.globalParameters = this.dashboard.getParametersDefs();
   };
 
-  $scope.$on('dashboard.update-parameters', () => {
-    this.extractGlobalParameters();
-  });
+  // ANGULAR_REMOVE_ME This forces Widgets re-rendering
+  // use state when Dashboard is migrated to React
+  this.forceDashboardGridReload = () => {
+    this.dashboard.widgets = [...this.dashboard.widgets];
+  };
 
-  const collectFilters = (dashboard, forceRefresh) => {
-    const queryResultPromises = _.compact(this.dashboard.widgets.map((widget) => {
-      widget.getParametersDefs(); // Force widget to read parameters values from URL
-      return widget.load(forceRefresh);
-    }));
+  this.loadWidget = (widget, forceRefresh = false) => {
+    widget.getParametersDefs(); // Force widget to read parameters values from URL
+    this.forceDashboardGridReload();
+    return widget.load(forceRefresh).finally(this.forceDashboardGridReload);
+  };
 
-    $q.all(queryResultPromises).then((queryResults) => {
+  this.refreshWidget = widget => this.loadWidget(widget, true);
+
+  const collectFilters = (dashboard, forceRefresh, updatedParameters = []) => {
+    const affectedWidgets = updatedParameters.length > 0 ? this.dashboard.widgets.filter(
+      widget => Object.values(widget.getParameterMappings()).filter(
+        ({ type }) => type === 'dashboard-level',
+      ).some(
+        ({ mapTo }) => _.includes(updatedParameters.map(p => p.name), mapTo),
+      ),
+    ) : this.dashboard.widgets;
+
+    const queryResultPromises = _.compact(affectedWidgets.map(widget => this.loadWidget(widget, forceRefresh)));
+
+    return $q.all(queryResultPromises).then((queryResults) => {
       this.filters = collectDashboardFilters(dashboard, queryResults, $location.search());
       this.filtersOnChange = (allFilters) => {
         this.filters = allFilters;
@@ -203,8 +218,11 @@ function DashboardCtrl(
 
   this.loadDashboard();
 
-  this.refreshDashboard = () => {
-    renderDashboard(this.dashboard, true);
+  this.refreshDashboard = (parameters) => {
+    this.refreshInProgress = true;
+    collectFilters(this.dashboard, true, parameters).finally(() => {
+      this.refreshInProgress = false;
+    });
   };
 
   this.autoRefresh = () => {
@@ -216,7 +234,13 @@ function DashboardCtrl(
   this.archiveDashboard = () => {
     const archive = () => {
       Events.record('archive', 'dashboard', this.dashboard.id);
-      this.dashboard.$delete();
+      // this API call will not modify widgets, but will reload them, so they will
+      // loose their internal state. So we'll save widgets before doing API call and
+      // restore them after.
+      const widgets = this.dashboard.widgets;
+      this.dashboard.$delete().then(() => {
+        this.dashboard.widgets = widgets;
+      });
     };
 
     const title = 'Archive Dashboard';
@@ -227,12 +251,11 @@ function DashboardCtrl(
   };
 
   this.showManagePermissionsModal = () => {
-    $uibModal.open({
-      component: 'permissionsEditor',
-      resolve: {
-        aclUrl: { url: `api/dashboards/${this.dashboard.id}/acl` },
-        owner: this.dashboard.user,
-      },
+    const aclUrl = `api/dashboards/${this.dashboard.id}/acl`;
+    PermissionsEditorDialog.showModal({
+      aclUrl,
+      context: 'dashboard',
+      author: this.dashboard.user,
     });
   };
 
@@ -304,95 +327,31 @@ function DashboardCtrl(
 
   this.updateDashboardFiltersState = () => {
     collectFilters(this.dashboard, false);
-    Dashboard.save(
-      {
-        slug: this.dashboard.id,
-        version: this.dashboard.version,
-        dashboard_filters_enabled: this.dashboard.dashboard_filters_enabled,
-      },
-      (dashboard) => {
-        this.dashboard = dashboard;
-      },
-      (error) => {
-        if (error.status === 403) {
-          notification.error('Name update failed', 'Permission denied.');
-        } else if (error.status === 409) {
-          notification.error(
-            'It seems like the dashboard has been modified by another user. ',
-            'Please copy/backup your changes and reload this page.',
-            { duration: null },
-          );
-        }
-      },
-    );
+    updateDashboard({
+      dashboard_filters_enabled: this.dashboard.dashboard_filters_enabled,
+    });
   };
 
   this.showAddTextboxDialog = () => {
     TextboxDialog.showModal({
       dashboard: this.dashboard,
-      onConfirm: this.addTextbox,
+      onConfirm: text => this.dashboard.addWidget(text).then(this.onWidgetAdded),
     });
-  };
-
-  this.addTextbox = (text) => {
-    const widget = new Widget({
-      dashboard_id: this.dashboard.id,
-      options: {
-        isHidden: false,
-        position: {},
-      },
-      text,
-      visualization: null,
-      visualization_id: null,
-    });
-
-    const position = this.dashboard.calculateNewWidgetPosition(widget);
-    widget.options.position.col = position.col;
-    widget.options.position.row = position.row;
-
-    return widget.save()
-      .then(() => {
-        this.dashboard.widgets.push(widget);
-        this.dashboard.widgets = [...this.dashboard.widgets]; // ANGULAR_REMOVE_ME
-        this.onWidgetAdded();
-      });
   };
 
   this.showAddWidgetDialog = () => {
     AddWidgetDialog.showModal({
       dashboard: this.dashboard,
-      onConfirm: this.addWidget,
-    });
-  };
-
-  this.addWidget = (selectedVis, parameterMappings) => {
-    const widget = new Widget({
-      visualization_id: selectedVis && selectedVis.id,
-      dashboard_id: this.dashboard.id,
-      options: {
-        isHidden: false,
-        position: {},
+      onConfirm: (visualization, parameterMappings) => this.dashboard.addWidget(visualization, {
         parameterMappings: editableMappingsToParameterMappings(parameterMappings),
-      },
-      visualization: selectedVis,
-      text: '',
+      }).then((widget) => {
+        const widgetsToSave = [
+          widget,
+          ...synchronizeWidgetTitles(widget.options.parameterMappings, this.dashboard.widgets),
+        ];
+        return Promise.all(widgetsToSave.map(w => w.save())).then(this.onWidgetAdded);
+      }),
     });
-
-    const position = this.dashboard.calculateNewWidgetPosition(widget);
-    widget.options.position.col = position.col;
-    widget.options.position.row = position.row;
-
-    const widgetsToSave = [
-      widget,
-      ...synchronizeWidgetTitles(widget.options.parameterMappings, this.dashboard.widgets),
-    ];
-
-    return Promise.all(widgetsToSave.map(w => w.save()))
-      .then(() => {
-        this.dashboard.widgets.push(widget);
-        this.dashboard.widgets = [...this.dashboard.widgets]; // ANGULAR_REMOVE_ME
-        this.onWidgetAdded();
-      });
   };
 
   this.onWidgetAdded = () => {
@@ -446,15 +405,14 @@ function DashboardCtrl(
   }
 
   this.openShareForm = () => {
-    // check if any of the wigets have query parameters
-    const hasQueryParams = _.some(
+    const hasOnlySafeQueries = _.every(
       this.dashboard.widgets,
-      w => !_.isEmpty(w.getQuery() && w.getQuery().getParametersDefs()),
+      w => (w.getQuery() ? w.getQuery().is_safe : true),
     );
 
     ShareDashboardDialog.showModal({
       dashboard: this.dashboard,
-      hasQueryParams,
+      hasOnlySafeQueries,
     });
   };
 }
