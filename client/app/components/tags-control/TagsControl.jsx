@@ -1,7 +1,6 @@
-import { map, trim, extend } from "lodash";
+import { map, trim } from "lodash";
 import React from "react";
 import PropTypes from "prop-types";
-import { react2angular } from "react2angular";
 import Tooltip from "antd/lib/tooltip";
 import EditTagsDialog from "./EditTagsDialog";
 
@@ -12,6 +11,7 @@ export class TagsControl extends React.Component {
     getAvailableTags: PropTypes.func,
     onEdit: PropTypes.func,
     className: PropTypes.string,
+    tagsExtra: PropTypes.node,
     children: PropTypes.node,
   };
 
@@ -21,17 +21,23 @@ export class TagsControl extends React.Component {
     getAvailableTags: () => Promise.resolve([]),
     onEdit: () => {},
     className: "",
+    tagsExtra: null,
     children: null,
   };
 
   editTags = (tags, getAvailableTags) => {
-    EditTagsDialog.showModal({ tags, getAvailableTags }).result.then(this.props.onEdit);
+    EditTagsDialog.showModal({ tags, getAvailableTags })
+      .result.then(this.props.onEdit)
+      .catch(() => {}); // ignore dismiss
   };
 
   renderEditButton() {
     const tags = map(this.props.tags, trim);
     return (
-      <a className="label label-tag" role="none" onClick={() => this.editTags(tags, this.props.getAvailableTags)}>
+      <a
+        className="label label-tag hidden-xs"
+        role="none"
+        onClick={() => this.editTags(tags, this.props.getAvailableTags)}>
         {tags.length === 0 && (
           <React.Fragment>
             <i className="zmdi zmdi-plus m-r-5" />
@@ -53,6 +59,7 @@ export class TagsControl extends React.Component {
           </span>
         ))}
         {this.props.canEdit && this.renderEditButton()}
+        {this.props.tagsExtra}
       </div>
     );
   }
@@ -74,22 +81,15 @@ function modelTagsControl({ archivedTooltip }) {
     );
   }
 
-  // ANGULAR_REMOVE_ME `extend` needed just for `react2angular`, so remove it when `react2angular` no longer needed
-  ModelTagsControl.propTypes = extend(
-    {
-      isDraft: PropTypes.bool,
-      isArchived: PropTypes.bool,
-    },
-    TagsControl.propTypes
-  );
+  ModelTagsControl.propTypes = {
+    isDraft: PropTypes.bool,
+    isArchived: PropTypes.bool,
+  };
 
-  ModelTagsControl.defaultProps = extend(
-    {
-      isDraft: false,
-      isArchived: false,
-    },
-    TagsControl.defaultProps
-  );
+  ModelTagsControl.defaultProps = {
+    isDraft: false,
+    isArchived: false,
+  };
 
   return ModelTagsControl;
 }
@@ -101,10 +101,3 @@ export const QueryTagsControl = modelTagsControl({
 export const DashboardTagsControl = modelTagsControl({
   archivedTooltip: "This dashboard is archived and won't be listed in dashboards nor search results.",
 });
-
-export default function init(ngModule) {
-  ngModule.component("queryTagsControl", react2angular(QueryTagsControl));
-  ngModule.component("dashboardTagsControl", react2angular(DashboardTagsControl));
-}
-
-init.init = true;

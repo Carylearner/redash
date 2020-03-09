@@ -14,7 +14,7 @@ from .helpers import (
 )
 from .organization import DATE_FORMAT, TIME_FORMAT  # noqa
 
-# _REDIS_URL is the unchanged REDIS_URL we get from env vars, to be used later with Celery
+# _REDIS_URL is the unchanged REDIS_URL we get from env vars, to be used later with RQ
 _REDIS_URL = os.environ.get(
     "REDASH_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 )
@@ -40,42 +40,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False
 
 RQ_REDIS_URL = os.environ.get("RQ_REDIS_URL", _REDIS_URL)
-
-# Celery related settings
-CELERY_BROKER = os.environ.get("REDASH_CELERY_BROKER", _REDIS_URL)
-CELERY_RESULT_BACKEND = os.environ.get(
-    "REDASH_CELERY_RESULT_BACKEND",
-    os.environ.get("REDASH_CELERY_BACKEND", CELERY_BROKER),
-)
-CELERY_RESULT_EXPIRES = int(
-    os.environ.get(
-        "REDASH_CELERY_RESULT_EXPIRES",
-        os.environ.get("REDASH_CELERY_TASK_RESULT_EXPIRES", 3600 * 4),
-    )
-)
-CELERY_INIT_TIMEOUT = int(os.environ.get("REDASH_CELERY_INIT_TIMEOUT", 10))
-CELERY_BROKER_USE_SSL = CELERY_BROKER.startswith("rediss")
-CELERY_SSL_CONFIG = (
-    {
-        "ssl_cert_reqs": int(
-            os.environ.get("REDASH_CELERY_BROKER_SSL_CERT_REQS", ssl.CERT_OPTIONAL)
-        ),
-        "ssl_ca_certs": os.environ.get("REDASH_CELERY_BROKER_SSL_CA_CERTS"),
-        "ssl_certfile": os.environ.get("REDASH_CELERY_BROKER_SSL_CERTFILE"),
-        "ssl_keyfile": os.environ.get("REDASH_CELERY_BROKER_SSL_KEYFILE"),
-    }
-    if CELERY_BROKER_USE_SSL
-    else None
-)
-
-CELERY_WORKER_PREFETCH_MULTIPLIER = int(
-    os.environ.get("REDASH_CELERY_WORKER_PREFETCH_MULTIPLIER", 1)
-)
-CELERY_ACCEPT_CONTENT = os.environ.get("REDASH_CELERY_ACCEPT_CONTENT", "json").split(
-    ","
-)
-CELERY_TASK_SERIALIZER = os.environ.get("REDASH_CELERY_TASK_SERIALIZER", "json")
-CELERY_RESULT_SERIALIZER = os.environ.get("REDASH_CELERY_RESULT_SERIALIZER", "json")
 
 # The following enables periodic job (every 5 minutes) of removing unused query results.
 QUERY_RESULTS_CLEANUP_ENABLED = parse_boolean(
@@ -188,6 +152,13 @@ GOOGLE_CLIENT_ID = os.environ.get("REDASH_GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("REDASH_GOOGLE_CLIENT_SECRET", "")
 GOOGLE_OAUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
+# If Redash is behind a proxy it might sometimes receive a X-Forwarded-Proto of HTTP
+# even if your actual Redash URL scheme is HTTPS. This will cause Flask to build
+# the SAML redirect URL incorrect thus failing auth. This is especially common if
+# you're behind a SSL/TCP configured AWS ELB or similar.
+# This setting will force the URL scheme.
+SAML_SCHEME_OVERRIDE = os.environ.get("REDASH_SAML_SCHEME_OVERRIDE", "")
+
 # Enables the use of an externally-provided and trusted remote user via an HTTP
 # header.  The "user" must be an email address.
 #
@@ -251,6 +222,14 @@ STATIC_ASSETS_PATH = fix_assets_path(
     os.environ.get("REDASH_STATIC_ASSETS_PATH", "../client/dist/")
 )
 
+# Time limit (in seconds) for scheduled queries. Set this to -1 to execute without a time limit.
+SCHEDULED_QUERY_TIME_LIMIT = int(
+    os.environ.get("REDASH_SCHEDULED_QUERY_TIME_LIMIT", -1)
+)
+
+# Time limit (in seconds) for adhoc queries. Set this to -1 to execute without a time limit.
+ADHOC_QUERY_TIME_LIMIT = int(os.environ.get("REDASH_ADHOC_QUERY_TIME_LIMIT", -1))
+
 JOB_EXPIRY_TIME = int(os.environ.get("REDASH_JOB_EXPIRY_TIME", 3600 * 12))
 JOB_DEFAULT_FAILURE_TTL = int(
     os.environ.get("REDASH_JOB_DEFAULT_FAILURE_TTL", 7 * 24 * 60 * 60)
@@ -262,26 +241,6 @@ LOG_PREFIX = os.environ.get("REDASH_LOG_PREFIX", "")
 LOG_FORMAT = os.environ.get(
     "REDASH_LOG_FORMAT",
     LOG_PREFIX + "[%(asctime)s][PID:%(process)d][%(levelname)s][%(name)s] %(message)s",
-)
-CELERYD_WORKER_LOG_FORMAT = os.environ.get(
-    "REDASH_CELERYD_WORKER_LOG_FORMAT",
-    os.environ.get(
-        "REDASH_CELERYD_LOG_FORMAT",
-        LOG_PREFIX
-        + "[%(asctime)s][PID:%(process)d][%(levelname)s][%(processName)s] %(message)s",
-    ),
-)
-CELERYD_WORKER_TASK_LOG_FORMAT = os.environ.get(
-    "REDASH_CELERYD_WORKER_TASK_LOG_FORMAT",
-    os.environ.get(
-        "REDASH_CELERYD_TASK_LOG_FORMAT",
-        (
-            LOG_PREFIX
-            + "[%(asctime)s][PID:%(process)d][%(levelname)s][%(processName)s] "
-            "task_name=%(task_name)s "
-            "task_id=%(task_id)s %(message)s"
-        ),
-    ),
 )
 RQ_WORKER_JOB_LOG_FORMAT = os.environ.get(
     "REDASH_RQ_WORKER_JOB_LOG_FORMAT",
@@ -373,6 +332,7 @@ default_query_runners = [
     "redash.query_runner.sqlite",
     "redash.query_runner.dynamodb_sql",
     "redash.query_runner.mssql",
+    "redash.query_runner.mssql_odbc",
     "redash.query_runner.memsql_ds",
     "redash.query_runner.mapd",
     "redash.query_runner.jql",

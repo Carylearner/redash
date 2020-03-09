@@ -1,27 +1,25 @@
+import { size, filter, forEach, extend } from "lodash";
 import React from "react";
 import PropTypes from "prop-types";
-import { size, filter, forEach, extend } from "lodash";
-import { react2angular } from "react2angular";
 import { SortableContainer, SortableElement, DragHandle } from "@/components/sortable";
-import { $location } from "@/services/ng";
-import { Parameter } from "@/services/parameters";
+import location from "@/services/location";
+import { Parameter, createParameter } from "@/services/parameters";
 import ParameterApplyButton from "@/components/ParameterApplyButton";
 import ParameterValueInput from "@/components/ParameterValueInput";
 import EditParameterSettingsDialog from "./EditParameterSettingsDialog";
-import { toHuman } from "@/filters";
+import { toHuman } from "@/lib/utils";
 
 import "./Parameters.less";
 
 function updateUrl(parameters) {
-  const params = extend({}, $location.search());
+  const params = extend({}, location.search);
   parameters.forEach(param => {
     extend(params, param.toUrlParams());
   });
-  Object.keys(params).forEach(key => params[key] == null && delete params[key]);
-  $location.search(params);
+  location.setSearch(params, true);
 }
 
-export class Parameters extends React.Component {
+export default class Parameters extends React.Component {
   static propTypes = {
     parameters: PropTypes.arrayOf(PropTypes.instanceOf(Parameter)),
     editable: PropTypes.bool,
@@ -51,11 +49,13 @@ export class Parameters extends React.Component {
 
   componentDidUpdate = prevProps => {
     const { parameters, disableUrlUpdate } = this.props;
-    if (prevProps.parameters !== parameters) {
+    const parametersChanged = prevProps.parameters !== parameters;
+    const disableUrlUpdateChanged = prevProps.disableUrlUpdate !== disableUrlUpdate;
+    if (parametersChanged) {
       this.setState({ parameters });
-      if (!disableUrlUpdate) {
-        updateUrl(parameters);
-      }
+    }
+    if ((parametersChanged || disableUrlUpdateChanged) && !disableUrlUpdate) {
+      updateUrl(parameters);
     }
   };
 
@@ -106,14 +106,16 @@ export class Parameters extends React.Component {
 
   showParameterSettings = (parameter, index) => {
     const { onParametersEdit } = this.props;
-    EditParameterSettingsDialog.showModal({ parameter }).result.then(updated => {
-      this.setState(({ parameters }) => {
-        const updatedParameter = extend(parameter, updated);
-        parameters[index] = Parameter.create(updatedParameter, updatedParameter.parentQueryId);
-        onParametersEdit();
-        return { parameters };
-      });
-    });
+    EditParameterSettingsDialog.showModal({ parameter })
+      .result.then(updated => {
+        this.setState(({ parameters }) => {
+          const updatedParameter = extend(parameter, updated);
+          parameters[index] = createParameter(updatedParameter, updatedParameter.parentQueryId);
+          onParametersEdit();
+          return { parameters };
+        });
+      })
+      .catch(() => {}); // ignore dismiss
   };
 
   renderParameter(param, index) {
@@ -174,9 +176,3 @@ export class Parameters extends React.Component {
     );
   }
 }
-
-export default function init(ngModule) {
-  ngModule.component("parameters", react2angular(Parameters));
-}
-
-init.init = true;

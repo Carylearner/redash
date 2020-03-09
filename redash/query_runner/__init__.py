@@ -3,10 +3,9 @@ import logging
 from dateutil import parser
 import requests
 
-from six import text_type
-
 from redash import settings
 from redash.utils import json_loads
+from rq.timeouts import JobTimeoutException
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +13,7 @@ __all__ = [
     "BaseQueryRunner",
     "BaseHTTPQueryRunner",
     "InterruptException",
+    "JobTimeoutException",
     "BaseSQLQueryRunner",
     "TYPE_DATETIME",
     "TYPE_BOOLEAN",
@@ -292,7 +292,7 @@ def guess_type_from_string(string_value):
     except (ValueError, OverflowError):
         pass
 
-    if text_type(string_value).lower() in ("true", "false"):
+    if str(string_value).lower() in ("true", "false"):
         return TYPE_BOOLEAN
 
     try:

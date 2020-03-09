@@ -6,17 +6,17 @@ import cx from "classnames";
 import Menu from "antd/lib/menu";
 import { currentUser } from "@/services/auth";
 import recordEvent from "@/services/recordEvent";
-import { formatDateTime } from "@/filters/datetime";
+import { formatDateTime } from "@/lib/utils";
 import HtmlContent from "@/components/HtmlContent";
-import { Parameters } from "@/components/Parameters";
-import { TimeAgo } from "@/components/TimeAgo";
-import { Timer } from "@/components/Timer";
+import Parameters from "@/components/Parameters";
+import TimeAgo from "@/components/TimeAgo";
+import Timer from "@/components/Timer";
 import { Moment } from "@/components/proptypes";
 import QueryLink from "@/components/QueryLink";
 import { FiltersType } from "@/components/Filters";
 import ExpandedWidgetDialog from "@/components/dashboards/ExpandedWidgetDialog";
 import EditParameterMappingsDialog from "@/components/dashboards/EditParameterMappingsDialog";
-import { VisualizationRenderer } from "@/visualizations/VisualizationRenderer";
+import VisualizationRenderer from "@/visualizations/components/VisualizationRenderer";
 import Widget from "./Widget";
 
 function visualizationWidgetMenuOptions({ widget, canEditDashboard, onParametersEdit }) {
@@ -35,6 +35,15 @@ function visualizationWidgetMenuOptions({ widget, canEditDashboard, onParameters
         </a>
       ) : (
         "Download as CSV File"
+      )}
+    </Menu.Item>,
+    <Menu.Item key="download_tsv" disabled={isQueryResultEmpty}>
+      {!isQueryResultEmpty ? (
+        <a href={downloadLink("tsv")} download={downloadName("tsv")} target="_self">
+          Download as TSV File
+        </a>
+      ) : (
+        "Download as TSV File"
       )}
     </Menu.Item>,
     <Menu.Item key="download_excel" disabled={isQueryResultEmpty}>
@@ -124,7 +133,7 @@ function VisualizationWidgetFooter({ widget, isPublic, onRefresh, onExpand }) {
     }
   };
 
-  return (
+  return widgetQueryResult ? (
     <>
       <span>
         {!isPublic && !!widgetQueryResult && (
@@ -158,7 +167,7 @@ function VisualizationWidgetFooter({ widget, isPublic, onRefresh, onExpand }) {
         </a>
       </span>
     </>
-  );
+  ) : null;
 }
 
 VisualizationWidgetFooter.propTypes = {
@@ -206,7 +215,7 @@ class VisualizationWidget extends React.Component {
   }
 
   expandWidget = () => {
-    ExpandedWidgetDialog.showModal({ widget: this.props.widget });
+    ExpandedWidgetDialog.showModal({ widget: this.props.widget }).result.catch(() => {}); // ignore dismiss
   };
 
   editParameterMappings = () => {
@@ -214,14 +223,16 @@ class VisualizationWidget extends React.Component {
     EditParameterMappingsDialog.showModal({
       dashboard,
       widget,
-    }).result.then(valuesChanged => {
-      // refresh widget if any parameter value has been updated
-      if (valuesChanged) {
-        onRefresh();
-      }
-      onParameterMappingsChange();
-      this.setState({ localParameters: widget.getLocalParameters() });
-    });
+    })
+      .result.then(valuesChanged => {
+        // refresh widget if any parameter value has been updated
+        if (valuesChanged) {
+          onRefresh();
+        }
+        onParameterMappingsChange();
+        this.setState({ localParameters: widget.getLocalParameters() });
+      })
+      .catch(() => {}); // ignore dismiss
   };
 
   renderVisualization() {

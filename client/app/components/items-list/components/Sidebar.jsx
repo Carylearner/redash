@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import Input from "antd/lib/input";
 import AntdMenu from "antd/lib/menu";
 import Select from "antd/lib/select";
-import { TagsList } from "@/components/TagsList";
+import TagsList from "@/components/TagsList";
 
 /*
     SearchInput
@@ -19,7 +19,6 @@ export function SearchInput({ placeholder, value, showIcon, onChange }) {
         placeholder={placeholder}
         defaultValue={value}
         onChange={event => onChange(event.target.value)}
-        autoFocus
       />
     </div>
   );

@@ -9,7 +9,7 @@ import Select from "antd/lib/select";
 import Input from "antd/lib/input";
 import Divider from "antd/lib/divider";
 import { wrap as wrapDialog, DialogPropType } from "@/components/DialogWrapper";
-import { QuerySelector } from "@/components/QuerySelector";
+import QuerySelector from "@/components/QuerySelector";
 import { Query } from "@/services/query";
 
 const { Option } = Select;
@@ -77,9 +77,7 @@ function EditParameterSettingsDialog(props) {
   useEffect(() => {
     const queryId = props.parameter.queryId;
     if (queryId) {
-      Query.get({ id: queryId }, query => {
-        setInitialQuery(query);
-      });
+      Query.get({ id: queryId }).then(setInitialQuery);
     }
   }, [props.parameter.queryId]);
 

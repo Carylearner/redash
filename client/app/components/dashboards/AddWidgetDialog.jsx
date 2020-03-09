@@ -5,7 +5,7 @@ import Select from "antd/lib/select";
 import Modal from "antd/lib/modal";
 import { wrap as wrapDialog, DialogPropType } from "@/components/DialogWrapper";
 import { MappingType, ParameterMappingListInput } from "@/components/ParameterMappingInput";
-import { QuerySelector } from "@/components/QuerySelector";
+import QuerySelector from "@/components/QuerySelector";
 
 import notification from "@/services/notification";
 
@@ -36,7 +36,7 @@ class AddWidgetDialog extends React.Component {
     });
 
     if (selectedQuery) {
-      Query.get({ id: selectedQuery.id }, query => {
+      Query.get({ id: selectedQuery.id }).then(query => {
         if (query) {
           const existingParamNames = map(this.props.dashboard.getParametersDefs(), param => param.name);
           this.setState({

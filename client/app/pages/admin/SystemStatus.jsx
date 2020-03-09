@@ -1,15 +1,12 @@
 import { omit } from "lodash";
 import React from "react";
+import { axios } from "@/services/axios";
 import PropTypes from "prop-types";
-import { react2angular } from "react2angular";
 
+import routeWithUserSession from "@/components/ApplicationArea/routeWithUserSession";
 import Layout from "@/components/admin/Layout";
 import * as StatusBlock from "@/components/admin/StatusBlock";
-
-import { $http } from "@/services/ng";
 import recordEvent from "@/services/recordEvent";
-import PromiseRejectionError from "@/lib/promise-rejection-error";
-import { routesToAngularRoutes } from "@/lib/utils";
 
 import "./system-status.less";
 
@@ -41,9 +38,9 @@ class SystemStatus extends React.Component {
   }
 
   refresh = () => {
-    $http
+    axios
       .get("/status.json")
-      .then(({ data }) => {
+      .then(data => {
         this.setState({
           queues: data.manager.queues,
           manager: {
@@ -55,13 +52,7 @@ class SystemStatus extends React.Component {
           status: omit(data, ["workers", "manager", "database_metrics"]),
         });
       })
-      .catch(error => {
-        // ANGULAR_REMOVE_ME This code is related to Angular's HTTP services
-        if (error.status && error.data) {
-          error = new PromiseRejectionError(error);
-        }
-        this.props.onError(error);
-      });
+      .catch(error => this.props.onError(error));
     this._refreshTimer = setTimeout(this.refresh, 60 * 1000);
   };
 
@@ -89,26 +80,8 @@ class SystemStatus extends React.Component {
   }
 }
 
-export default function init(ngModule) {
-  ngModule.component("pageSystemStatus", react2angular(SystemStatus));
-
-  return routesToAngularRoutes(
-    [
-      {
-        path: "/admin/status",
-        title: "System Status",
-        key: "system_status",
-      },
-    ],
-    {
-      template: '<page-system-status on-error="handleError"></page-system-status>',
-      controller($scope, $exceptionHandler) {
-        "ngInject";
-
-        $scope.handleError = $exceptionHandler;
-      },
-    }
-  );
-}
-
-init.init = true;
+export default routeWithUserSession({
+  path: "/admin/status",
+  title: "System Status",
+  render: pageProps => <SystemStatus {...pageProps} />,
+});
