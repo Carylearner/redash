@@ -88,10 +88,11 @@ const location = {
     location.update({ hash }, replace);
   },
 };
-/* lodash中extend用法
+
 function locationChanged() {
   extend(location, normalizeLocation(history.location));
 }
+/* lodash中extend用法
 function Foo() {
   this.a = 1;
 }
