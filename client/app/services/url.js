@@ -11,6 +11,9 @@ export function parse(url) {
   link.setAttribute("href", url);
   return pick(link, fragmentProps);
 }
+/*
+pick 创建一个从 object 中选中的属性的对象。
+*/
 
 export function stringify(fragments) {
   extend(link, pick(fragments, fragmentProps));
