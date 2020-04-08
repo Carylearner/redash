@@ -11,10 +11,22 @@ function normalizeLocation(rawLocation) {
   result.path = pathname;
   result.search = mapValues(qs.parse(search), value => (isNil(value) ? true : value));
   result.hash = trimStart(hash, "#");
-  result.url = `${pathname}${search}${hash}`;
+  result.url = `${pathname}${search}${hash}`;  //ES6新引入的模板字符串，可以类比shell中`和$在此处的用法
 
   return result;
 }
+/*
+isNil 检查 value 是否是 null 或者 undefined
+mapValues
+var users = {
+  'fred':    { 'user': 'fred',    'age': 40 },
+  'pebbles': { 'user': 'pebbles', 'age': 1 }
+}; 
+mapValues(users, function(o) { return o.age; });
+// => { 'fred': 40, 'pebbles': 1 } (iteration order is not guaranteed)
+trimStart
+从string字符串中移除前面的 空格 或 指定的字符。
+*/
 
 const location = {
   listen(handler) {
