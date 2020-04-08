@@ -91,7 +91,8 @@ export default function Router({ routes, onRouteChange }) {
 
     resolve("PUSH");
 
-    const unlisten = location.listen((unused, action) => resolve(action));
+    const unlisten = location.listen((unused, action) => resolve(action)); //history.listen函数返回的是对应的unlisten方法，
+    //即组件卸载时，无需监听
 
     return () => {
       isAbandoned = true;
