@@ -88,10 +88,20 @@ const location = {
     location.update({ hash }, replace);
   },
 };
-
+/* lodash中extend用法
 function locationChanged() {
   extend(location, normalizeLocation(history.location));
 }
+function Foo() {
+  this.a = 1;
+}
+function Bar() {
+  this.c = 3;
+}
+Foo.prototype.b = 2;
+Bar.prototype.d = 4; 
+_.assignIn({ 'a': 0 }, new Foo, new Bar);
+// => { 'a': 1, 'b': 2, 'c': 3, 'd': 4 } */
 
 history.listen(locationChanged);
 locationChanged(); // init service
