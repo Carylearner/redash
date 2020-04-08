@@ -104,6 +104,13 @@ Bar.prototype.d = 4;
 _.assignIn({ 'a': 0 }, new Foo, new Bar);
 // => { 'a': 1, 'b': 2, 'c': 3, 'd': 4 } */
 
+/*
+Listen!
+History使用观察者模式来在地址发生改变的时候来通知外部的代码。
+每个history对象都有一个listen方法，这个方法接收一个函数作为它的参数。
+这个函数会被添加到history中的用于保存监听函数的数组中。任何时候当地址发生改变时（无论是通过在代码中调用history对象的方法还是通过点击浏览器的按钮），
+history对象会调用它所有的监听函数。这使得你能够编写一些代码用于监听当地址发生改变时，来执行相关的操作。
+*/
 history.listen(locationChanged);
 locationChanged(); // init service
 
