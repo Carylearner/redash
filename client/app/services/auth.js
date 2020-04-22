@@ -44,8 +44,10 @@ export const Auth = {
   },
   login() {
     const next = encodeURI(location.url);
+    //通常如果一样东西需要编码，说明这样东西并不适合传输。原因多种多样，如Size过大，包含隐私数据，对于Url来说，之所以要进行编码，是因为Url中有些字符会引起歧义
     logger("Calling login with next = %s", next);
     window.location.href = `login?next=${next}`;
+    //webpack-dev-server通过代理，会请求后端
   },
   logout() {
     logger("Logout.");
