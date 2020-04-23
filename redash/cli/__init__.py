@@ -23,7 +23,7 @@ def create(group):
 
 @click.group(cls=FlaskGroup, create_app=create)
 def manager():
-    """Management script for Redash"""
+    """Management script for Redash,用于管理多个子命令"""
 
 
 manager.add_command(database.manager, "database")

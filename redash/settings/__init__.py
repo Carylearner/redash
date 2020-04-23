@@ -1,8 +1,8 @@
-import os
 import importlib
-import ssl
-from funcy import distinct, remove
+import os
+
 from flask_talisman import talisman
+from funcy import distinct, remove
 
 from .helpers import (
     fix_assets_path,
@@ -14,9 +14,10 @@ from .helpers import (
 )
 from .organization import DATE_FORMAT, TIME_FORMAT  # noqa
 
+
 # _REDIS_URL is the unchanged REDIS_URL we get from env vars, to be used later with RQ
 _REDIS_URL = os.environ.get(
-    "REDASH_REDIS_URL", os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    "REDASH_REDIS_URL", os.environ.get("REDIS_URL", "redis://lijiapeng:1001654Ljp@101.132.155.91:6379")
 )
 # This is the one to use for Redash' own connection:
 REDIS_URL = add_decode_responses_to_redis_url(_REDIS_URL)
@@ -29,7 +30,7 @@ STATSD_USE_TAGS = parse_boolean(os.environ.get("REDASH_STATSD_USE_TAGS", "false"
 
 # Connection settings for Redash's own database (where we store the queries, results, etc)
 SQLALCHEMY_DATABASE_URI = os.environ.get(
-    "REDASH_DATABASE_URL", os.environ.get("DATABASE_URL", "postgresql:///postgres")
+    "REDASH_DATABASE_URL", os.environ.get("DATABASE_URL", "postgresql://lijiapeng:1001654Ljp@101.132.155.91")
 )
 SQLALCHEMY_MAX_OVERFLOW = int_or_none(os.environ.get("SQLALCHEMY_MAX_OVERFLOW"))
 SQLALCHEMY_POOL_SIZE = int_or_none(os.environ.get("SQLALCHEMY_POOL_SIZE"))
@@ -272,7 +273,7 @@ def email_server_is_configured():
     return MAIL_DEFAULT_SENDER is not None
 
 
-HOST = os.environ.get("REDASH_HOST", "")
+HOST = os.environ.get("REDASH_HOST", "0.0.0.0")
 
 SEND_FAILURE_EMAIL_INTERVAL = int(
     os.environ.get("REDASH_SEND_FAILURE_EMAIL_INTERVAL", 60)
@@ -359,6 +360,7 @@ default_query_runners = [
     "redash.query_runner.exasol",
     "redash.query_runner.cloudwatch",
     "redash.query_runner.cloudwatch_insights",
+    "redash.query_runner.oracle"
 ]
 
 enabled_query_runners = array_from_string(

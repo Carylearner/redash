@@ -26,3 +26,5 @@ def configure_webpack(app):
     @app.context_processor
     def webpack_assets():
         return {"asset_url": get_asset}
+    #context_processor在flask中被称作上下文处理器，借助context_processor我们可以让所有自定义变量在模板中可见，
+    #作为一个装饰器函数，所修饰的函数的返回结果必须是dict，届时dict中的key将作为变量在所有模板中可见。

@@ -440,7 +440,7 @@ class RedshiftIAM(Redshift):
             else:
                 assume_client = client = boto3.client('sts',
                                                       region_name=self.configuration.get("aws_region"))
-            role_session = f"redash_{uuid4().hex}"
+            role_session = "redash_{}".format(uuid4().hex)
             session_keys = assume_client.assume_role(
                 RoleArn=self.configuration.get("rolename"),
                 RoleSessionName=role_session)["Credentials"]
