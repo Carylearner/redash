@@ -152,8 +152,8 @@ FEATURE_POLICY = os.environ.get("REDASH_REFERRER_POLICY", "")
 
 MULTI_ORG = parse_boolean(os.environ.get("REDASH_MULTI_ORG", "false"))
 
-GOOGLE_CLIENT_ID = os.environ.get("REDASH_GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("REDASH_GOOGLE_CLIENT_SECRET", "")
+GOOGLE_CLIENT_ID = os.environ.get("REDASH_GOOGLE_CLIENT_ID", False)
+GOOGLE_CLIENT_SECRET = os.environ.get("REDASH_GOOGLE_CLIENT_SECRET", False)
 GOOGLE_OAUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
 # If Redash is behind a proxy it might sometimes receive a X-Forwarded-Proto of HTTP

@@ -25,8 +25,11 @@ class RedashSQLAlchemy(SQLAlchemy):
             # Remove options NullPool does not support:
             options.pop("max_overflow", None)
 
-
+# expire_on_commitshi:创建session，Defaults to True. When True, all instances will be fully expired after each commit(),
+# so that all attribute/object access subsequent to a completed transaction will load from the most recent database state.
 db = RedashSQLAlchemy(session_options={"expire_on_commit": False})
+
+
 # Make sure the SQLAlchemy mappers are all properly configured first.
 # This is required by SQLAlchemy-Searchable as it adds DDL listeners
 # on the configuration phase of models.
