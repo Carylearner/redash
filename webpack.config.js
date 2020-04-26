@@ -1,5 +1,16 @@
 /* eslint-disable */
 
+/* webpack打包之后的文件
+  1) 自执行函数
+  2) 参数通过对象的形式传递  key:文件的路径  value:函数
+   eval 执行字符串代码  如果有多个相互依赖的文件，最终打包成一个文件
+  webpack的目标就是使前端代码打包的体积更小，以及访问更快。
+  webpack包含的优化主要分为两个方面：
+  1) webpack自身的优化。tree-shaking:tree-shaking是一个术语，是production模式打包自带优化，通常用于打包时移除JavaScript中未引用的代码。
+                      scope-hoisting:作用域提升，webpack会替换某些变量，计算好数值，不需要交给浏览器来计算
+  2) 自定义的优化。
+*/
+
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WebpackBuildNotifierPlugin = require("webpack-build-notifier");
