@@ -31,7 +31,8 @@ trimStart
 const location = {
   listen(handler) {
     if (isFunction(handler)) {
-      return history.listen((unused, action) => handler(location, action));
+      return history.listen((unused, action) => handler(location, action));//history.listen方法是按照接口传递参数，其中
+      //The action is one of PUSH, REPLACE, or POP depending on how the user got to the current URL.
     } else {
       return () => {};
     }
