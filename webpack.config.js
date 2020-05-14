@@ -64,7 +64,8 @@ const config = {
     new HtmlWebpackPlugin({
       template: "./client/app/index.html",
       filename: "index.html",
-      excludeChunks: ["server"]
+      excludeChunks: ["server"],
+      release: process.env.BUILD_VERSION || "dev"
     }),
     new HtmlWebpackPlugin({
       template: "./client/app/multi_org.html",
@@ -102,7 +103,7 @@ const config = {
       },
       {
         test: /\.html$/,
-        exclude: [/node_modules/, /index\.html/],
+        exclude: [/node_modules/, /index\.html/, /multi_org\.html/],
         use: [
           {
             loader: "raw-loader"

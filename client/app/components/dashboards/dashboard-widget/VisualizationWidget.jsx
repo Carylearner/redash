@@ -4,10 +4,10 @@ import { compact, isEmpty, invoke } from "lodash";
 import { markdown } from "markdown";
 import cx from "classnames";
 import Menu from "antd/lib/menu";
+import HtmlContent from "@redash/viz/lib/components/HtmlContent";
 import { currentUser } from "@/services/auth";
 import recordEvent from "@/services/recordEvent";
 import { formatDateTime } from "@/lib/utils";
-import HtmlContent from "@/components/HtmlContent";
 import Parameters from "@/components/Parameters";
 import TimeAgo from "@/components/TimeAgo";
 import Timer from "@/components/Timer";
@@ -238,8 +238,8 @@ class VisualizationWidget extends React.Component {
   };
 
   renderVisualization() {
-    const { isLoading, widget, filters } = this.props;
-    const widgetQueryResult = !isLoading && widget.getQueryResult();
+    const { widget, filters } = this.props;
+    const widgetQueryResult = widget.getQueryResult();
     const widgetStatus = widgetQueryResult && widgetQueryResult.getStatus();
     switch (widgetStatus) {
       case "failed":
