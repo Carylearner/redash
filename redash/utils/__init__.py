@@ -71,7 +71,8 @@ def generate_token(length):
 
 class JSONEncoder(simplejson.JSONEncoder):
     """Adapter for `simplejson.dumps`."""
-
+    
+    
     def default(self, o):
         # Some SQLAlchemy collections are lazy.
         if isinstance(o, Query):
@@ -115,6 +116,9 @@ def json_dumps(data, *args, **kwargs):
     simplejson.dumps function."""
     kwargs.setdefault("cls", JSONEncoder)
     kwargs.setdefault("encoding", None)
+    # Float value nan or inf in Python should be render to None or null in json.
+    # Using ignore_nan = False will make Python render nan as NaN, leading to parse error in front-end
+    kwargs.setdefault('ignore_nan', True)
     return simplejson.dumps(data, *args, **kwargs)
 
 
