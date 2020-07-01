@@ -10,19 +10,19 @@ import routeWithUserSession from "@/components/ApplicationArea/routeWithUserSess
 import Resizable from "@/components/Resizable";
 import Parameters from "@/components/Parameters";
 import EditInPlace from "@/components/EditInPlace";
-import QueryEditor from "@/components/queries/QueryEditor";
 import recordEvent from "@/services/recordEvent";
 import { ExecutionStatus } from "@/services/query-result";
+import routes from "@/services/routes";
 
 import QueryPageHeader from "./components/QueryPageHeader";
 import QueryMetadata from "./components/QueryMetadata";
 import QueryVisualizationTabs from "./components/QueryVisualizationTabs";
 import QueryExecutionStatus from "./components/QueryExecutionStatus";
-import SchemaBrowser from "./components/SchemaBrowser";
 import QuerySourceAlerts from "./components/QuerySourceAlerts";
 import wrapQueryPage from "./components/wrapQueryPage";
 import QueryExecutionMetadata from "./components/QueryExecutionMetadata";
 
+import { getEditorComponents } from "@/components/queries/editor-components";
 import useQuery from "./hooks/useQuery";
 import useVisualizationTabHandler from "./hooks/useVisualizationTabHandler";
 import useAutocompleteFlags from "./hooks/useAutocompleteFlags";
@@ -57,6 +57,7 @@ function QuerySource(props) {
   const queryFlags = useQueryFlags(query, dataSource);
   const [parameters, areParametersDirty, updateParametersDirtyFlag] = useQueryParameters(query);
   const [selectedVisualization, setSelectedVisualization] = useVisualizationTabHandler(query.visualizations);
+  const { QueryEditor, SchemaBrowser } = getEditorComponents(dataSource && dataSource.type);
   const isMobile = !useMedia({ minWidth: 768 });
 
   useUnsavedChangesAlert(isDirty);
@@ -183,7 +184,7 @@ function QuerySource(props) {
   return (
     <div className={cx("query-page-wrapper", { "query-fixed-layout": !isMobile })}>
       <QuerySourceAlerts query={query} dataSourcesAvailable={!dataSourcesLoaded || dataSources.length > 0} />
-      <div className="container p-b-10">
+      <div className="container w-100 p-b-10">
         <QueryPageHeader
           query={query}
           dataSource={dataSource}
@@ -414,15 +415,19 @@ QuerySource.propTypes = {
 
 const QuerySourcePage = wrapQueryPage(QuerySource);
 
-export default [
+routes.register(
+  "Queries.New",
   routeWithUserSession({
     path: "/queries/new",
     render: pageProps => <QuerySourcePage {...pageProps} />,
     bodyClass: "fixed-layout",
-  }),
+  })
+);
+routes.register(
+  "Queries.Edit",
   routeWithUserSession({
     path: "/queries/:queryId([0-9]+)/source",
     render: pageProps => <QuerySourcePage {...pageProps} />,
     bodyClass: "fixed-layout",
-  }),
-];
+  })
+);
